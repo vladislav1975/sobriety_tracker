@@ -1,116 +1,143 @@
-# -------------------------------
-# Sobriety Tracker Script
-# -------------------------------
-# This script helps users track how long they've been sober.
-# It stores the start date in a file and calculates the time passed
-# in years, months, and days using the dateutil library.
-# -------------------------------
-
-# Import standard libraries for date handling and file operations
-from datetime import date, datetime  # 'date' for current date, 'datetime' for parsing strings
-from calendar import monthrange      # Used to validate day input based on month/year
-import os                            # Used to check if the save file exists
-import json                          # Used to save and load the sobriety_tracker date
-from json import JSONDecodeError     # Handles corrupted JSON files
-
-# Import relativedelta for accurate date differences (years/months/days)
+from datetime import date, datetime
+from calendar import monthrange
+import os
+import json
+from json import JSONDecodeError
 from dateutil.relativedelta import relativedelta
 
-# File name where the sobriety_tracker start date will be saved
 FNAME = "sobriety_start_date.json"
 
-# Function to display error messages in a consistent format
-def error(msg):
-    print(f"❌ Error: {msg}")
+# 🌍 Language dictionary
+messages = {
+    'en': {
+        'choose_lang': "Choose language (En/ru - Enter - English): ",
+        'invalid_lang': "Language not supported. Defaulting to English.",
+        'error_prefix': "❌ Error:",
+        'exit_setup': "👋 Exiting setup.",
+        'enter_year': "Enter sobriety starting year (or 'q' to quit): ",
+        'enter_month': "Month (1–12): ",
+        'enter_day': "Day (1–{max_d}): ",
+        'invalid_input': "Invalid input. Please enter a valid number.",
+        'range_error': "Please enter a number between {min_val} and {max_val}.",
+        'future_date': "Date is in the future.",
+        'date_saved': "✅ Date saved: {date_str}",
+        'saved_date': "📅 Saved date: {date_str}",
+        'corrupted_file': "Corrupted file. Creating new...",
+        'no_saved_date': "📂 No saved date found.",
+        'days_sober': "\n🎉 You've been sober for {days} day(s), which is:",
+        'duration': "   🗓️ {years} year(s), {months} month(s), {days} day(s)"
+    },
+    'ru': {
+        'choose_lang': "Выберите язык (en/ru): ",
+        'invalid_lang': "Язык не поддерживается. Используется английский.",
+        'error_prefix': "❌ Ошибка:",
+        'exit_setup': "👋 Выход из настройки.",
+        'enter_year': "Введите год начала трезвости (или 'q' для выхода): ",
+        'enter_month': "Месяц (1–12): ",
+        'enter_day': "День (1–{max_d}): ",
+        'invalid_input': "Неверный ввод. Пожалуйста, введите число.",
+        'range_error': "Введите число от {min_val} до {max_val}.",
+        'future_date': "Дата в будущем.",
+        'date_saved': "✅ Дата сохранена: {date_str}",
+        'saved_date': "📅 Сохраненная дата: {date_str}",
+        'corrupted_file': "Файл поврежден. Создание нового...",
+        'no_saved_date': "📂 Сохраненная дата не найдена.",
+        'days_sober': "\n🎉 Вы трезвы уже {days} дн., что составляет:",
+        'duration': "   🗓️ {years} лет, {months} мес., {days} дн."
+    }
+}
 
-# Function to get a valid integer input from the user
-# Includes optional min/max validation and a quit option
-def get_valid_int(prompt, min_val=None, max_val=None):
+# 🌐 Language selection
+def choose_language():
+    lang = input(messages['en']['choose_lang']).strip().lower()
+    if not lang:
+        lang = 'en'
+    elif lang not in messages:
+        print(messages['en']['invalid_lang'])
+        lang = 'en'
+    return lang
+
+
+# 🛑 Error display
+def error(msg, lang):
+    print(f"{messages[lang]['error_prefix']} {msg}")
+
+# 🔢 Valid integer input
+def get_valid_int(prompt, lang, min_val=None, max_val=None):
     while True:
         response = input(prompt)
-        if response.lower() == 'q':  # Allow user to exit input
-            print("👋 Exiting setup.")
+        if response.lower() == 'q':
+            print(messages[lang]['exit_setup'])
             return None
         try:
             value = int(response)
-            # Check if value is within the allowed range
             if (min_val is not None and value < min_val) or (max_val is not None and value > max_val):
-                error(f"Please enter a number between {min_val} and {max_val}.")
+                print(messages[lang]['range_error'].format(min_val=min_val, max_val=max_val))
                 continue
             return value
         except ValueError:
-            error("Invalid input. Please enter a valid number.")
+            print(messages[lang]['invalid_input'])
 
-# Function to read the saved sobriety_tracker date from the JSON file
-def read_saved_date():
+# 📂 Read saved date
+def read_saved_date(lang):
     if os.path.exists(FNAME):
         try:
             with open(FNAME, 'r') as file:
-                content = json.load(file)  # Load date string from file
-                saved_date = datetime.strptime(content, '%Y-%m-%d').date()  # Convert to date object
-                print(f"📅 Saved date: {saved_date.strftime('%A %d %B %Y')}")
+                content = json.load(file)
+                saved_date = datetime.strptime(content, '%Y-%m-%d').date()
+                print(messages[lang]['saved_date'].format(date_str=saved_date.strftime('%A %d %B %Y')))
                 return saved_date
         except (ValueError, JSONDecodeError):
-            # If the file is corrupted or unreadable, delete it and start fresh
-            error("Corrupted file. Creating new...")
+            error(messages[lang]['corrupted_file'], lang)
             os.remove(FNAME)
     else:
-        print("📂 No saved date found.")
+        print(messages[lang]['no_saved_date'])
     return None
 
-# Function to prompt the user to enter their sobriety_tracker start date
-def prompt_for_date():
+# 📅 Prompt for new date
+def prompt_for_date(lang):
     while True:
-        # Ask for year, month, and day with validation
-        y = get_valid_int("Enter sobriety_tracker starting year (or 'q' to quit): ", 1900, date.today().year)
+        y = get_valid_int(messages[lang]['enter_year'], lang, 1900, date.today().year)
         if y is None:
             return None
 
-        m = get_valid_int("Month (1–12): ", 1, 12)
+        m = get_valid_int(messages[lang]['enter_month'], lang, 1, 12)
         if m is None:
             return None
 
-        # Get the maximum number of days in the selected month/year
         max_d = monthrange(y, m)[1]
-        d = get_valid_int(f"Day (1–{max_d}): ", 1, max_d)
+        d = get_valid_int(messages[lang]['enter_day'].format(max_d=max_d), lang, 1, max_d)
         if d is None:
             return None
 
-        # Create a date object from the input
         start_date = date(y, m, d)
-
-        # Prevent future dates
         if start_date > date.today():
-            error("Date is in the future.")
+            error(messages[lang]['future_date'], lang)
             continue
 
-        # Save the date to file in YYYY-MM-DD format
         with open(FNAME, 'w') as file:
             json.dump(start_date.strftime('%Y-%m-%d'), file)
-        print(f"✅ Date saved: {start_date.strftime('%A %d %B %Y')}")
+        print(messages[lang]['date_saved'].format(date_str=start_date.strftime('%A %d %B %Y')))
         return start_date
 
-# Main function that runs the sobriety_tracker tracker
+# 🚀 Main logic
 def main():
-    # Try to load the saved date; if not found, prompt the user
-    start_date = read_saved_date()
+    lang = choose_language()
+    start_date = read_saved_date(lang)
     if not start_date:
-        start_date = prompt_for_date()
+        start_date = prompt_for_date(lang)
 
     if start_date:
         today = date.today()
-        # Calculate total days sober
         days_sober = (today - start_date).days
-
-        # Use relativedelta to get years, months, and days
         delta = relativedelta(today, start_date)
 
-        # Display results
-        print(f"\n🎉 You've been sober for {days_sober} day{'s' if days_sober != 1 else ''}, which is:")
-        print(f"   🗓️ {delta.years} year{'s' if delta.years != 1 else ''}, "
-              f"{delta.months} month{'s' if delta.months != 1 else ''}, "
-              f"{delta.days} day{'s' if delta.days != 1 else ''}")
+        print(messages[lang]['days_sober'].format(days=days_sober))
+        print(messages[lang]['duration'].format(
+            years=delta.years,
+            months=delta.months,
+            days=delta.days
+        ))
 
-# Run the main function when the script is executed
 if __name__ == '__main__':
     main()

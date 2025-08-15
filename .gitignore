@@ -1,4 +1,48 @@
+# Python bytecode
 __pycache__/
-*.pyc
-*.json
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# PyCharm project files
+.idea/
+*.iml
+
+# VS Code settings (if you ever switch)
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Test coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# SQLite database (if used for local storage)
+*.sqlite3
+
+# Environment variable files
 .env
+.env.*
+
+# Migrations (optional, if using Django or Flask-Migrate)
+migrations/
